@@ -22,7 +22,6 @@ var Folders = (function(){
         parentNode = parentNode || rootNode.find('.file_paths');
         sharedNode = sharedNode ||  rootNode.find('.shared_file_paths');
 
-        //fetch the filelist from server, then add the files to the filesystem.
         FileSystem.getFileList( function(data,username,user_list){
             parentNode.empty();
             var root = {
@@ -30,39 +29,59 @@ var Folders = (function(){
                 'name' : username,
                 'folders' : {
                     'root' : {
-                        'name' : username,
+                        'name' : 'root',
                         'path' : '',
                         'folders' : data.folders,
                         'files' : data.files
                     }
                 }
             };
-            addFiles(root, parentNode, user_list);
-            FileSystem.getSharedFileList(function(sharedFileList){
-                sharedNode.empty();
-                //console.log(sharedFileList);
-                var sharedRoot = {
-                    'path' : '',
-                    'name' : 'shared',
-                    'folders' : {
-                        'shared' : {
-                            'name' : 'shared',
-                            'path' : '',
-                            'folders' : sharedFileList.folders,
-                            'files' : sharedFileList.files
-                        }
-                    }
-                };
-                addSharedFiles(sharedRoot, sharedNode);
-            });
-            callback(true);
-        }, function(jqXHR,status,errorThrown){
-	    console.log(status);
-	    console.log(errorThrown);
-            noServer();
-            callback(false);
-        }
-			      );
+
+            addFiles(root, parentNode, '');
+        });
+        callback(true);
+
+        //fetch the filelist from server, then add the files to the filesystem.
+     //    FileSystem.getFileList( function(data,username,user_list){
+     //        parentNode.empty();
+     //        var root = {
+     //            'path' : '',
+     //            'name' : username,
+     //            'folders' : {
+     //                'root' : {
+     //                    'name' : username,
+     //                    'path' : '',
+     //                    'folders' : data.folders,
+     //                    'files' : data.files
+     //                }
+     //            }
+     //        };
+     //        addFiles(root, parentNode, user_list);
+     //        FileSystem.getSharedFileList(function(sharedFileList){
+     //            sharedNode.empty();
+     //            //console.log(sharedFileList);
+     //            var sharedRoot = {
+     //                'path' : '',
+     //                'name' : 'shared',
+     //                'folders' : {
+     //                    'shared' : {
+     //                        'name' : 'shared',
+     //                        'path' : '',
+     //                        'folders' : sharedFileList.folders,
+     //                        'files' : sharedFileList.files
+     //                    }
+     //                }
+     //            };
+     //            addSharedFiles(sharedRoot, sharedNode);
+     //        });
+     //        callback(true);
+     //    }, function(jqXHR,status,errorThrown){
+	    // console.log(status);
+	    // console.log(errorThrown);
+     //        noServer();
+     //        callback(false);
+     //    }
+			  //     );
         var level = 0;
 
         function buildListButton(icon, callback, type, tooltip) {
@@ -737,15 +756,17 @@ var Folders = (function(){
                 actions.showError(folderPath + ' is already a folder; please choose another name.');
                 return false;
             }
+
             return folderPath;
         }
         function newFolderAction(validFolderPath, actions){
-
             FileSystem.newFolder(validFolderPath, function(){
                 actions.destroy();
                 refresh();
+                return true;
             });
         }
+
         newFSObject(parent, validFolderName, newFolderAction, 'New Folder', 'new folder');
     }
 

@@ -24,6 +24,12 @@ var FileSystem= (function(){
     var saved_file_list = [];
     var saved_folder_list = [];
 
+    var openFiles=[];
+    var allFiles=[];
+    var allFolders=[];
+    var delimRegExp = /[^<>\$\:\"\|\/\\\?\*]+/g;
+    var fileTree={files:{},folders:{}};
+
     // which user we want to access on file system
     // if undefined, server will use certificate to determine user
     var user_attribute = undefined;
@@ -79,6 +85,118 @@ var FileSystem= (function(){
                 if (callback) callback({_error: 'Server '+status+' '+error});
             }
         });
+    }
+
+    function writeTreeToLocalStorage(){
+        console.log('writing tree to local storage');
+
+        //todo, divide up the data, make it asynchronous
+        //var savedTree=traverseTree()
+        for(var i=0; i < openFiles.length; i++){
+            var filePath = openFiles[i];
+            var file = traverseTree(filePath, function(i, followPath, pathname, end){
+
+                if(end){
+                    var file = followPath.files[pathname];
+                    var mUsername = "";
+                    localStorage.setItem('6004file'+mUsername+'/'+filePath, JSON.stringify(file));    
+                }
+                return true;
+            });
+        }
+        console.log(JSON.stringify(fileTree));
+        localStorage.setItem('6004data', JSON.stringify(fileTree));   
+        
+    }
+    function readTreeFromLocalStorage(){
+        //todo make it asynchronous
+        var x = JSON.parse(localStorage.getItem('6004data'));
+
+        if(x == null) {
+            x = build_tree(saved_file_list, saved_folder_list);
+        }
+        return x;
+    }
+    function writeLocalStorageToServer(){
+        //tobe implemented;
+    }
+    
+    function traverseTree(fileName, action){
+        //TODO NEEDS ERROR HANDLING
+        // Whitelist not blacklist of filenames
+        var pathArray = fileName.match(delimRegExp);
+        var followPath = fileTree;
+        for(var i = 0; i < pathArray.length; i++){
+            var pathName = pathArray[i];
+            // action function of 4 variables, the index, the current path, the current path name, and whether we're at the end or not
+            //, and the length of the whole pathArray. 
+            // returns true if we can continue
+            try{
+                if(i < pathArray.length -1){                    
+                    if(action(i, followPath, pathName, false))
+                        followPath = followPath.folders[pathName];
+                } else {
+                    action(i, followPath, pathName, true);
+                }
+            } catch(e) {
+                console.log(e.stack);
+                console.log(i);
+                console.log(pathArray);
+                console.log(followPath);
+            }
+        }
+        return followPath || {}; // wtf?
+    }
+    function getFileFromTree(fileName){
+        var finalTree = traverseTree(fileName, function(i, currentPath, pathName, atEnd) {
+            return pathName == fileName;
+        });
+        var fileNames = Object.keys(finalTree.files);
+
+        // console.log(finalTree);
+        //TODO fix, length does not work for objects
+        if(fileNames.length == 0)
+            return false;
+
+        //else there is a file
+        return finalTree.files[fileName];
+    }
+ 
+    function writeFileToTree(fileName, fileData, onServer){
+        var finalTree=traverseTree(fileName, function(i, followPath, currentPath, end){
+            if(end){
+                // console.log(fileName+' being written');
+                if (!(currentPath in followPath.files)) followPath.files[currentPath] = {};
+                followPath.files[currentPath].data = fileData;
+                followPath.files[currentPath].name = fileName;
+                followPath.files[currentPath].onServer = onServer;
+                followPath.files[currentPath].path = currentPath;
+                followPath.files[currentPath].localDate = (new Date()).getTime();
+                return false;
+            }
+            return true;
+        });
+        writeTreeToLocalStorage();
+        return finalTree;
+    }
+
+    function writeFolderToTree(folderName, onServer){
+        var finalTree=traverseTree(folderName, function(i, followPath, currentPath, end){
+            if(end){
+                if (!(currentPath in followPath.folders)) {
+                    followPath.folders[currentPath] = {
+                            'name' : folderName,
+                            'path' : currentPath,
+                            'folders' : {},
+                            'files' : {}
+                        };
+                }
+                return false;
+            }
+            return true;
+        });
+        writeTreeToLocalStorage();
+        return finalTree;
     }
 
     function shared_request(url,dataType,succeed,fail) {
@@ -173,27 +291,59 @@ var FileSystem= (function(){
         // see if server gets a certificate from us
         server_request('/user/validate',{},
                        function (response) {
-                           if (response._error === undefined) {
-                               sessionStorage.setItem('user',response._user);
-                               sessionStorage.setItem('username',response._username);
-                               callback(response._user);
-                           } else {
-                               // pop up dialog to let user sign in
-                               var dialog = new ModalDialog();
-                               dialog.setTitle("Sign In");
-                               dialog.setText("Your account has been initialized using information provided by the registrar. Your Username is your Athena account name and your initial Password is your MIT ID number.  You can change your password on your Online assignments page.");
-                               dialog.inputBox({label: "Username", type: 'text', callback: complete_signin});
-                               dialog.inputBox({label: "Password", type: 'password', callback: complete_signin});
-                               dialog.addButton("Dismiss", "dismiss");
-                               dialog.addButton("Submit", function(){complete_signin(dialog);}, 'btn-primary');
-                               dialog.show();
-                           }
+                             sessionStorage.setItem('user',response._user);
+                             sessionStorage.setItem('username',response._username);
+                             callback(response._user);
+                           // if (response._error === undefined) {
+                           //     sessionStorage.setItem('user',response._user);
+                           //     sessionStorage.setItem('username',response._username);
+                           //     callback(response._user);
+                           // } else {
+                           //     // pop up dialog to let user sign in
+                           //     var dialog = new ModalDialog();
+                           //     dialog.setTitle("Sign In");
+                           //     dialog.setText("Your account has been initialized using information provided by the registrar. Your Username is your Athena account name and your initial Password is your MIT ID number.  You can change your password on your Online assignments page.");
+                           //     dialog.inputBox({label: "Username", type: 'text', callback: complete_signin});
+                           //     dialog.inputBox({label: "Password", type: 'password', callback: complete_signin});
+                           //     dialog.addButton("Dismiss", "dismiss");
+                           //     dialog.addButton("Submit", function(){complete_signin(dialog);}, 'btn-primary');
+                           //     dialog.show();
+                           // }
                        });
     }
 
     // build required tree from list of filenames
-    function build_tree(flist,root_name) {
+    function build_tree(flist,folderlist, root_name) {
         var root = {name: root_name || '???', path: '', folders: {}, files: {}};
+
+        folderlist.sort();  // keep names in order
+        $.each(folderlist,function (index,fname) {
+            // current folder starts at the root
+            var dir = root;
+
+            // process each component of hierarchical file name, creating any missing
+            // directories as we descend from the root.  Last component is the file name...
+            var components = fname.split("/");
+            $.each(components,function (nindex,name) {
+                if (nindex == components.length - 1) {
+                    if (name.length > 0) {
+                        // last component is the file name, add to current folder
+                        dir.folders[name] = {
+                            'name' : name,
+                            'path' : fname,
+                            'folders' : {},
+                            'files' : {}
+                        };
+                    }
+                } else {
+                    var child = dir.folders[name];
+                    // descend a level in the folder tree
+                    dir = child;
+                }
+            });
+            
+
+        });
 
         flist.sort();  // keep names in order
         $.each(flist,function (index,fname) {
@@ -223,6 +373,7 @@ var FileSystem= (function(){
                 }
             });
             
+
         });
 
         return root;
@@ -230,21 +381,29 @@ var FileSystem= (function(){
 
     function getFileList(succeed,fail) {
         // first step: validate the user with the server
-        validate_user(function(user) {
-            server_request('/file/',
-                           {'action': 'list'},
-                           function (response) {
-                               if (response._error === undefined) {
-                                   saved_file_list = response.list;  // remember for later reference
-                                   var tree = build_tree(response.list);
-                                   succeed(tree,response._user,response.users);
-                               } else {
-                                   if (fail) fail(response._error);
-                                   else console.warn(response._error);
-                               }
-                           });
+         // saved_file_list = response.list;  // remember for later reference
 
-        });
+         // var tree1 = build_tree(saved_file_list, saved_folder_list);
+         fileTree=readTreeFromLocalStorage();
+         // console.log("build: ")
+         // console.log(tree1);
+         // console.log("load: ")
+         // fileTree = tree;
+         succeed(fileTree,"","");
+        // validate_user(function(user) {
+        //     server_request('/file/',
+        //                    {'action': 'list'},
+        //                    function (response) {
+        //                        if (response._error === undefined) {
+        //                        } else {
+        //                            if (fail) fail(response._error);
+        //                            else console.warn(response._error);
+        //                        }
+        //                    });
+
+        // });
+
+        // return saved_file_list;
     }
 
     function getSharedFileList(succeed,fail) {
@@ -265,18 +424,19 @@ var FileSystem= (function(){
     }
 
     function newFolder(filename,succeed,fail) {
-        server_request('/file/'+filename+'/',
-                       {action: 'folder'},
-                       function(response){
-                           if (response._error) {
-                               if (fail) fail(response._error);
-                               else console.warn(response._error);
-                           } else {
-                               if (saved_folder_list.indexOf(filename) == -1)
-                                   saved_folder_list.push(filename);
-                               succeed();
-                           }
-                       });
+         if (saved_folder_list.indexOf(filename) == -1)
+             saved_folder_list.push(filename);
+         succeed();
+         writeFolderToTree(filename, true);
+        // server_request('/file/'+filename+'/',
+        //                {action: 'folder'},
+        //                function(response){
+        //                    if (response._error) {
+        //                        if (fail) fail(response._error);
+        //                        else console.warn(response._error);
+        //                    } else {
+        //                    }
+        //                });
     }
 
     function isFile(filename) {
@@ -284,43 +444,38 @@ var FileSystem= (function(){
     }
 
     function newFile(filename,contents,succeed,fail) {
-        server_request('/file/'+filename,
-                       {action: 'save',contents: contents},
-                       function(response){
-                           if (response._error) {
-                               if (fail) fail(response._error);
-                               else console.warn(response._error);
-                           } else {
-                               if (saved_file_list.indexOf(filename) == -1)
-                                   saved_file_list.push(filename);
-                               succeed({name: filename, data: contents});
-                           }
-                       });
+        if (saved_file_list.indexOf(filename) == -1)
+           saved_file_list.push(filename);
+        succeed({name: filename, data: contents});
+        writeFileToTree(filename, contents, true);
+
+        // server_request('/file/'+filename,
+        //                {action: 'save',contents: contents},
+        //                function(response){
+        //                    if (response._error) {
+        //                        if (fail) fail(response._error);
+        //                        else console.warn(response._error);
+        //                    } else {
+        //                    }
+        //                });
     }
 
     function deleteFile(filename,succeed,fail) {
-        server_request('/file/'+filename,
-                       {action: 'delete'},
-                       function(response){
-                           if (response._error) {
-                               if (fail) fail(response._error);
-                               else console.warn(response._error);
-                           } else {
-                               var index = saved_file_list.indexOf(filename);
-                               if (index != -1) saved_file_list.splice(index,1);
-                               succeed();
-                           }
-                       });
+       var index = saved_file_list.indexOf(filename);
+       if (index != -1) saved_file_list.splice(index,1);
+       succeed();
+        // server_request('/file/'+filename,
+        //                {action: 'delete'},
+        //                function(response){
+        //                    if (response._error) {
+        //                        if (fail) fail(response._error);
+        //                        else console.warn(response._error);
+        //                    } else {
+        //                    }
+        //                });
     }
 
     function renameFile(old_filename,new_filename,succeed,fail) {
-        server_request('/file/'+old_filename,
-                       {action: 'rename',path: new_filename},
-                       function(response){
-                           if (response._error) {
-                               if (fail) fail(response._error);
-                               else console.warn(response._error);
-                           } else {
                                var index = saved_file_list.indexOf(old_filename);
                                if (index != -1) saved_file_list.splice(index,1);
 
@@ -329,8 +484,15 @@ var FileSystem= (function(){
 
                                // finish up by returning contents of new file
                                getFile(new_filename,succeed,fail);
-                           }
-                       });
+        // server_request('/file/'+old_filename,
+        //                {action: 'rename',path: new_filename},
+        //                function(response){
+        //                    if (response._error) {
+        //                        if (fail) fail(response._error);
+        //                        else console.warn(response._error);
+        //                    } else {
+        //                    }
+        //                });
     }
 
     var metadata_tag = '//metadata ';   // marker for metadata at beginning of file
@@ -358,68 +520,72 @@ var FileSystem= (function(){
     }
 
     function getFile(filename,succeed,fail) {
-        if (filename.match(/^\/shared/))
-            shared_request(filename.substr(1),'text',function(response) {
-                succeed({name: filename, data: response, shared: true});
-            },fail);
-        else server_request('/file/'+filename,
-                            {action: 'load'},
-                            function(response){
-                                if (response._error) {
-                                    if (fail) fail(response._error);
-                                    else console.warn(response._error);
-                                } else {
-                                    var contents = extract_metadata(response.file);
-                                    var autosave_contents = extract_metadata(response.autosave);
-                                    // only allow read-only access if we're staff reading in a student's file
-                                    var readonly = (user_attribute && user_attribute!=sessionStorage.getItem('user').split('@')[0])
-                                    succeed({name: filename,
-                                             data: contents.contents,
-                                             metadata: contents.metadata,
-                                             autosave: autosave_contents,
-                                             shared: readonly});
-                                }
-                            });
+        var response = getFileFromTree(filename);
+        var contents = extract_metadata(response.data);
+        // var autosave_contents = extract_metadata(response.autosave);
+        // only allow read-only access if we're staff reading in a student's file
+        var readonly = (user_attribute && user_attribute!=sessionStorage.getItem('user').split('@')[0])
+        succeed({name: filename,
+                 data: contents.contents,
+                 metadata: contents.metadata,
+                 // autosave: autosave_contents,
+                 shared: readonly});        // if (filename.match(/^\/shared/))
+        //     shared_request(filename.substr(1),'text',function(response) {
+        //         succeed({name: filename, data: response, shared: true});
+        //     },fail);
+        // else server_request('/file/'+filename,
+        //                     {action: 'load'},
+        //                     function(response){
+        //                         if (response._error) {
+        //                             if (fail) fail(response._error);
+        //                             else console.warn(response._error);
+        //                         } else {
+
+        //                         }
+        //                     });
     }
 
     function getBackup(filename,succeed,fail) {
-        server_request('/file/'+filename,
-                       {action: 'load'},
-                       function(response){
-                           if (response._error || response.backup === undefined) {
-                               if (fail) fail(response._error);
-                               else console.warn(response._error);
-                           } else {
                                var contents = extract_metadata(response.backup);
                                succeed({name: filename,
                                         data: contents.contents,
                                         metadata: contents.metadata});
-                           }
-                       });
+        // server_request('/file/'+filename,
+        //                {action: 'load'},
+        //                function(response){
+        //                    if (response._error || response.backup === undefined) {
+        //                        if (fail) fail(response._error);
+        //                        else console.warn(response._error);
+        //                    } else {
+        //                    }
+        //                });
     }
 
     function makeAutoSave(filename,contents,succeed,fail,metadata) {
         contents = insert_metadata(contents,metadata);
-        server_request('/file/'+filename,
-                       {action: 'autosave',contents: contents},
-                       function(response){
-                           if (response._error) {
-                               if (fail) fail(response._error);
-                               else console.warn(response._error);
-                           } else succeed({name: filename, data: contents});
-                       });
+        succeed({name: filename, data: contents});
+        // server_request('/file/'+filename,
+        //                {action: 'autosave',contents: contents},
+        //                function(response){
+        //                    if (response._error) {
+        //                        if (fail) fail(response._error);
+        //                        else console.warn(response._error);
+        //                    } else 
+        //                });
     }
 
     function saveFile(filename,contents,succeed,fail,metadata) {
         contents = insert_metadata(contents,metadata);
-        server_request('/file/'+filename,
-                       {action: 'save',contents: contents},
-                       function(response){
-                           if (response._error) {
-                               if (fail) fail(response._error);
-                               else console.warn(response._error);
-                           } else succeed({name: filename, data: contents});
-                       });
+        writeFileToTree(filename, contents, true);
+
+        // server_request('/file/'+filename,
+        //                {action: 'save',contents: contents},
+        //                function(response){
+        //                    if (response._error) {
+        //                        if (fail) fail(response._error);
+        //                        else console.warn(response._error);
+        //                    } else succeed({name: filename, data: contents});
+        //                });
     }
 
     function downloadZipURL() {

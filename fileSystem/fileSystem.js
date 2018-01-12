@@ -3,7 +3,7 @@
 //var console,localStorage;
 
 var FileSystem= (function(){
-    var mServer = FILESERVER_HOST;
+    var mServer;
     var mUsername;
 
     var openFiles=[];
@@ -50,15 +50,17 @@ var FileSystem= (function(){
 
     function getFileList(callback, callbackFailed){
         //using username or some other sort of authentication, we can get the root folder of the user
-        // if(fileTree)
-        //     console.log(Object.keys(fileTree).length);
-        // if(Object.keys(fileTree).length>0&&updated){
-        //  return fileTree;
-        // }else if (!updated){
-        //  fileTree=readTreeFromLocalStorage;
-        //  writeLocalStorageToServer();
-        //  return fileTree;
-        // }
+        if(fileTree)
+            console.log(Object.keys(fileTree).length);
+        if(Object.keys(fileTree).length>0&&updated){
+         return fileTree;
+        }else if (!updated){
+         fileTree=readTreeFromLocalStorage;
+         writeLocalStorageToServer();
+         return fileTree;
+        }
+
+        /*
         if(mServer){
             sendAjaxRequest({name:'/'}, null, 'getFileList',
                 function(data, status){
@@ -90,6 +92,7 @@ var FileSystem= (function(){
             }); 
             //callback will return with a file object
         }
+        */
     };
     function getSharedFileList(callback, callbackFailed){
         sendAjaxRequest({name:'/shared/'}, null, 'getFileList', function(data){
@@ -112,9 +115,8 @@ var FileSystem= (function(){
             allFiles.push(file.path);
         }
     }
-    /*
     function writeTreeToLocalStorage(){
-        // console.log('writing tree to local storage');
+        console.log('writing tree to local storage');
 
         //todo, divide up the data, make it asynchronous
         //var savedTree=traverseTree()
@@ -195,7 +197,6 @@ var FileSystem= (function(){
         //writeTreeToLocalStorage();
         return finalTree;
     }
-     */
 
     //SERVER FUNCTIONS
     function getFile(fileName, callback, callbackFailed){
@@ -208,7 +209,7 @@ var FileSystem= (function(){
             if(status == 'success'){
                 // console.log(data)
                 callback(data);
-                //if(!data.shared) writeFileToTree(data.name, data.data, true);
+                if(!data.shared) writeFileToTree(data.name, data.data, true);
             }
         }, callbackFailed);
     };
@@ -307,7 +308,7 @@ var FileSystem= (function(){
         };
         sendAjaxRequest(fileObj, null, 'saveFile', function(data, status){
             callback(data);
-            //writeFileToTree(fileName, fileData);
+            writeFileToTree(fileName, fileData);
             //updated = false;
         }, callbackFailed);
         
@@ -320,7 +321,7 @@ var FileSystem= (function(){
         };
         sendAjaxRequest(fileObj, null, 'autoSaveFile', function(data, status){
             callback(data);
-            //writeFileToTree(fileName, fileData);
+            writeFileToTree(fileName, fileData);
             //updated = false;
         }, callbackFailed);
     };
@@ -332,7 +333,7 @@ var FileSystem= (function(){
         sendAjaxRequest(fileObj, null, 'getAutoSave', function(data, status){
                 if(data.status === 'success'){
                     callback(data);
-                    //writeFileToTree(data.name, data.data, true);
+                    writeFileToTree(data.name, data.data, true);
                 }
             }, callbackFailed);
     };
@@ -342,7 +343,8 @@ var FileSystem= (function(){
             data : fileData, 
             time : (new Date()).getTime()
         };
-        sendAjaxRequest(fileObj, null, 'saveFile', callback, callbackFailed);
+        console.log('hi');
+        // sendAjaxRequest(fileObj, null, 'saveFile', callback, callbackFailed);
         //updated=false;
     };
     function newFolder(folderName, callback, callbackFailed){

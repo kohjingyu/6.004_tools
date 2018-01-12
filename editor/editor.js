@@ -566,6 +566,8 @@ var Editor = function(container, mode, no_file_buttons) {
 
         // Load any prior tabs we have or show some handy tips.
         if(!restore_tabs()) display_initial_tips();
+
+        self.openTab("", "", true, false, false, "");
     };
 
     var do_save = function(document) {

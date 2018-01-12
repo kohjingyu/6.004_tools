@@ -432,8 +432,8 @@ var Checkoff = (function(){
                 result.append('<br style="clear:right;"><br><textarea class="advice" style="font: 12px/1.25 monospace; width:95%;" rows="10">... enter your advice here</textarea>');
             }
 
-            result.append('<br><hr><br>To complete your submission, please enter your Athena name, your 6.004');
-            result.append('online password and list any collaborators.');
+            // result.append('<br><hr><br>To complete your submission, please enter your Athena name, your 6.004');
+            // result.append('online password and list any collaborators.');
 
             dialog.setContent(result);
             dialog.noFocus();
