@@ -718,6 +718,8 @@ var Folders = (function(){
                 refresh();
                 return true;    
             });
+
+            refresh();
         }
         function validNewFileName(fileName, actions){
             
@@ -765,6 +767,8 @@ var Folders = (function(){
                 refresh();
                 return true;
             });
+            
+            refresh();
         }
 
         newFSObject(parent, validFolderName, newFolderAction, 'New Folder', 'new folder');
