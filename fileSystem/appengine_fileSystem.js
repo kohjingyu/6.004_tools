@@ -149,9 +149,10 @@ var FileSystem= (function(){
     }
     function getFileFromTree(fileName){
         var finalTree = traverseTree(fileName, function(i, currentPath, pathName, atEnd) {
-            return pathName == fileName;
+            return currentPath.folders[pathName] != null;
         });
         var fileNames = Object.keys(finalTree.files);
+        // var pathArray = fileName.match(delimRegExp);
 
         // console.log(finalTree);
         //TODO fix, length does not work for objects
@@ -159,7 +160,7 @@ var FileSystem= (function(){
             return false;
 
         //else there is a file
-        return finalTree.files[fileName];
+        return finalTree.files[fileNames[0]];
     }
  
     function writeFileToTree(fileName, fileData, onServer){
@@ -168,9 +169,9 @@ var FileSystem= (function(){
                 // console.log(fileName+' being written');
                 if (!(currentPath in followPath.files)) followPath.files[currentPath] = {};
                 followPath.files[currentPath].data = fileData;
-                followPath.files[currentPath].name = fileName;
+                followPath.files[currentPath].name = currentPath;
                 followPath.files[currentPath].onServer = onServer;
-                followPath.files[currentPath].path = currentPath;
+                followPath.files[currentPath].path = fileName;
                 followPath.files[currentPath].localDate = (new Date()).getTime();
                 return false;
             }
@@ -383,8 +384,9 @@ var FileSystem= (function(){
         // first step: validate the user with the server
          // saved_file_list = response.list;  // remember for later reference
 
-         // var tree1 = build_tree(saved_file_list, saved_folder_list);
+         // var fileTree = build_tree(saved_file_list, saved_folder_list);
          fileTree=readTreeFromLocalStorage();
+         console.log(fileTree);
          // console.log("build: ")
          // console.log(tree1);
          // console.log("load: ")
