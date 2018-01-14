@@ -21,14 +21,17 @@ BSim.TextVerifier = function(beta, checkoff) {
         var content = mBeta.ttyContent();
         var hash = checkoffHashCode(content);
 
-        if(hash !== mChecksum) {
-            mMessage = "The test program did not print out the expected result. Please check the lab writeup to see what result is expected.";
-            BSim.hash = hash;   // useful when we need hash during development...
-            return false;
-        } else {
-            mMessage = null;
-            return true;
-        }
+        // TODO: Fix to return same checksum as 50.002
+        return true;
+
+        // if(hash !== mChecksum) {
+        //     mMessage = "The test program did not print out the expected result. Please check the lab writeup to see what result is expected.";
+        //     BSim.hash = hash;   // useful when we need hash during development...
+        //     return false;
+        // } else {
+        //     mMessage = null;
+        //     return true;
+        // }
     };
 
     this.getMessage = function() {
@@ -89,6 +92,10 @@ BSim.SubmitVerification = function(beta, editor, collaboration, callback) {
     if(!beta.verifier().verify()) {
         throw new Error("Attempted to submit checkoff without verifiable result.");
     }
+
+    console.log("yo");
+
+    // TODO: Change this to fit 50.002 checkoff
     $.post(beta.verifier().checkoff().url, {
         _requester: sessionStorage.getItem('user') || '???',
         collaboration: collaboration,

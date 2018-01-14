@@ -92,6 +92,7 @@ $(function() {
 
     // Add some buttons to it
     editor.addButtonGroup([new ToolbarButton('Assemble', do_assemble, 'Runs your program!')]);
+    // editor.addButtonGroup([new ToolbarButton('Checkoff', checkoff, 'Checkoff')]);
 
     function window_height() {
         return $('.xblock-6004').innerHeight();
