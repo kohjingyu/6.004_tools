@@ -104,7 +104,7 @@ var FileSystem= (function(){
                 return true;
             });
         }
-        console.log(JSON.stringify(fileTree));
+        console.log(fileTree);
         localStorage.setItem('6004data', JSON.stringify(fileTree));   
         
     }
@@ -155,12 +155,11 @@ var FileSystem= (function(){
         // var pathArray = fileName.match(delimRegExp);
 
         // console.log(finalTree);
-        //TODO fix, length does not work for objects
-        if(fileNames.length == 0)
+        if(fileNames.indexOf(fileName) == -1)
             return false;
 
         //else there is a file
-        return finalTree.files[fileNames[0]];
+        return finalTree.files[fileName];
     }
  
     function writeFileToTree(fileName, fileData, onServer){
@@ -386,6 +385,7 @@ var FileSystem= (function(){
 
          // var fileTree = build_tree(saved_file_list, saved_folder_list);
          fileTree=readTreeFromLocalStorage();
+         console.log("getting");
          console.log(fileTree);
          // console.log("build: ")
          // console.log(tree1);
@@ -463,38 +463,47 @@ var FileSystem= (function(){
     }
 
     function deleteFile(filename,succeed,fail) {
-       var index = saved_file_list.indexOf(filename);
-       if (index != -1) saved_file_list.splice(index,1);
+        var finalTree = traverseTree(filename, function(i, currentPath, pathName, atEnd) {
+            return currentPath.folders[pathName] != null;
+        });
+        var filenames = Object.keys(finalTree.files);
+        if(filenames.length > 0)
+           console.log('deleting');
+            delete finalTree.files[filenames[0]];
+
+       writeTreeToLocalStorage();
+
        succeed();
-        // server_request('/file/'+filename,
-        //                {action: 'delete'},
-        //                function(response){
-        //                    if (response._error) {
-        //                        if (fail) fail(response._error);
-        //                        else console.warn(response._error);
-        //                    } else {
-        //                    }
-        //                });
     }
 
     function renameFile(old_filename,new_filename,succeed,fail) {
-                               var index = saved_file_list.indexOf(old_filename);
-                               if (index != -1) saved_file_list.splice(index,1);
+        var finalTree = traverseTree(old_filename, function(i, currentPath, pathName, atEnd) {
+            return currentPath.folders[pathName] != null;
+        });
+        var filenames = Object.keys(finalTree.files);
 
-                               index = saved_file_list.indexOf(new_filename);
-                               if (index == -1) saved_file_list.push(new_filename);
+        if(filenames.length > 0) {
+            var new_index = filenames.indexOf(new_filename);
+            console.log(finalTree);
 
-                               // finish up by returning contents of new file
-                               getFile(new_filename,succeed,fail);
-        // server_request('/file/'+old_filename,
-        //                {action: 'rename',path: new_filename},
-        //                function(response){
-        //                    if (response._error) {
-        //                        if (fail) fail(response._error);
-        //                        else console.warn(response._error);
-        //                    } else {
-        //                    }
-        //                });
+            var old_path_array = old_filename.match(delimRegExp);
+            var real_old_filename = old_path_array[old_path_array.length - 1];
+            var new_path_array = new_filename.match(delimRegExp);
+            var real_new_filename = new_path_array[new_path_array.length - 1];
+
+            if(new_index == -1) {
+                finalTree.files[real_new_filename] = finalTree.files[real_old_filename];
+                finalTree.files[real_new_filename].name = real_new_filename;
+                finalTree.files[real_new_filename].path = new_filename;
+                delete finalTree.files[real_old_filename];
+            }
+        }
+
+       console.log('renaming');
+       writeTreeToLocalStorage();
+
+       // finish up by returning contents of new file
+       getFile(new_filename,succeed,fail);
     }
 
     var metadata_tag = '//metadata ';   // marker for metadata at beginning of file
