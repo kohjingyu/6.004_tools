@@ -43,6 +43,7 @@ $(function() {
 
     // Make an editor
     var editor = new Editor('#editor', 'uasm');
+
     // Filesystem tree thing
     Folders.setup('#filetree', editor, 'uasm');
 

@@ -42,9 +42,11 @@ BSim.Controls = function(container, beta, editor, schematic) {
     };
 
     var complete_checkoff = function(old) {
-        var collaborators = old.inputContent(0);
+        var username = old.inputContent(0);
+        var password = old.inputContent(1);
+        var collaborators = old.inputContent(2);
         old.dismiss();
-        BSim.SubmitVerification(mBeta, mEditor, collaborators, function(success, text) {
+        BSim.SubmitVerification(mBeta, mEditor, username, password, collaborators, function(success, text) {
             var dialog = new ModalDialog();
             if(success) {
                 dialog.setTitle("Checkoff complete");
