@@ -20,18 +20,17 @@ BSim.TextVerifier = function(beta, checkoff) {
         }
         var content = mBeta.ttyContent();
         var hash = checkoffHashCode(content);
+        console.log(hash);
 
         // TODO: Fix to return same checksum as 50.002
-        return true;
-
-        // if(hash !== mChecksum) {
-        //     mMessage = "The test program did not print out the expected result. Please check the lab writeup to see what result is expected.";
-        //     BSim.hash = hash;   // useful when we need hash during development...
-        //     return false;
-        // } else {
-        //     mMessage = null;
-        //     return true;
-        // }
+        if(hash !== mChecksum) {
+            mMessage = "The test program did not print out the expected result. Please check the lab writeup to see what result is expected.";
+            BSim.hash = hash;   // useful when we need hash during development...
+            return false;
+        } else {
+            mMessage = null;
+            return true;
+        }
     };
 
     this.getMessage = function() {

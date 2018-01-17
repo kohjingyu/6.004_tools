@@ -88,7 +88,7 @@ var FileSystem= (function(){
     }
 
     function writeTreeToLocalStorage(){
-        console.log('writing tree to local storage');
+        // console.log('writing tree to local storage');
 
         //todo, divide up the data, make it asynchronous
         //var savedTree=traverseTree()
@@ -104,7 +104,7 @@ var FileSystem= (function(){
                 return true;
             });
         }
-        console.log(fileTree);
+        // console.log(fileTree);
         localStorage.setItem('6004data', JSON.stringify(fileTree));   
         
     }
