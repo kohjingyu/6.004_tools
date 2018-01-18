@@ -810,7 +810,7 @@
     PCheckoff.prototype.assemble = function(context, out, source_map) {
         Checkoff.prototype.assemble.call(this, context, out, source_map);
         if(out) {
-            context.checkoff.running_checksum = 36036;
+            context.checkoff.running_checksum = 36038;
             context.checkoff.addresses = {};
         }
     };
